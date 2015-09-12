@@ -155,6 +155,7 @@ HRESULT Direct3D_Init(HWND hwnd){
 	d3dpp.Flags = 0;
 
 	HR(pD3d->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hwnd, vp, &d3dpp, &g_pd3dDevice));
+	SAFE_RELEASE(pD3d);
 
 	return Objects_Init(hwnd);
 }
@@ -174,6 +175,6 @@ VOID Direct3D_Render(HWND hwnd){
 
 //----------------Direct3D_CleanUp------------------
 VOID Direct3D_CleanUp(){
-
+	SAFE_RELEASE(g_pd3dDevice);
 }
 //--------------------------------------------------
