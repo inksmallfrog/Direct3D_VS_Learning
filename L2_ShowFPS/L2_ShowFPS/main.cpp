@@ -20,7 +20,7 @@
 //---------------------Macros---------------------
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 600
-#define WINDOW_TITLE L"L0_GDIFrame"
+#define WINDOW_TITLE L"L2_ShowFPS"
 //------------------------------------------------
 
 //--------------------Functions-------------------

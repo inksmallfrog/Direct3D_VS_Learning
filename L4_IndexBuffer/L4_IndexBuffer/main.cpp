@@ -8,7 +8,10 @@
 //--------------------Header----------------------
 #include <d3d9.h>
 #include <d3dx9.h>
+#include <tchar.h>
 #include "D3D_Macros.h"
+#include "D3D_Info.h"
+#include "CustomVertex.h"
 //------------------------------------------------
 
 //----------------------Lib-----------------------
@@ -18,7 +21,7 @@
 //---------------------Macros---------------------
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 600
-#define WINDOW_TITLE L"L1_D3DInit"
+#define WINDOW_TITLE L"L4_IndexBuffer"
 //------------------------------------------------
 
 //--------------------Functions-------------------
@@ -31,6 +34,9 @@ VOID Direct3D_CleanUp();
 
 //---------------------Global---------------------
 LPDIRECT3DDEVICE9 g_pd3dDevice = NULL;
+LPDIRECT3DVERTEXBUFFER9 g_pVertexBuffer = NULL;
+LPDIRECT3DINDEXBUFFER9 g_pIndexBuffer = NULL;
+ID3DXFont *g_pFont = NULL;
 //------------------------------------------------
 
 //--------------------WinMain---------------------
@@ -163,18 +169,78 @@ HRESULT Direct3D_Init(HWND hwnd){
 
 //----------------Objects_Init----------------------
 HRESULT Objects_Init(HWND hwnd){
+	HR(D3DXCreateFont(g_pd3dDevice, 26, 0, 0, 0, false, DEFAULT_CHARSET,
+		OUT_DEFAULT_PRECIS, DEFAULT_QUALITY, 0, L"微软雅黑", &g_pFont));
+
+	HR(g_pd3dDevice->CreateVertexBuffer(6 * sizeof(CustomVertex), 0,
+		D3DFVF_CUSTOMVERTEX, D3DPOOL_DEFAULT, &g_pVertexBuffer, NULL));
+	HR(g_pd3dDevice->CreateIndexBuffer(9 * sizeof(WORD), 0,
+		D3DFMT_INDEX16, D3DPOOL_DEFAULT, &g_pIndexBuffer, NULL));
+
+	CustomVertex Vertices[] = {
+		{ WINDOW_WIDTH / 2.0f, 100.0f, 0.0f, 1.0f, D3DCOLOR_XRGB(rand() % 256, rand() % 256, rand() % 256) },
+		{ WINDOW_WIDTH / 2.0f + 100.0f, 500.0f, 0.0f, 1.0f, D3DCOLOR_XRGB(rand() % 256, rand() % 256, rand() % 256) },
+		{ WINDOW_WIDTH / 2.0f, 400.0f, 0.0f, 1.0f, D3DCOLOR_XRGB(rand() % 256, rand() % 256, rand() % 256) },
+		{ WINDOW_WIDTH / 2.0f - 100.0f, 500.0f, 0.0f, 1.0f, D3DCOLOR_XRGB(rand() % 256, rand() % 256, rand() % 256) },
+		{ WINDOW_WIDTH / 2.0f + 200.0f, 250.0f, 0.0f, 1.0f, D3DCOLOR_XRGB(rand() % 256, rand() % 256, rand() % 256) },
+		{ WINDOW_WIDTH / 2.0f - 200.0f, 250.0f, 0.0f, 1.0f, D3DCOLOR_XRGB(rand() % 256, rand() % 256, rand() % 256) }
+	};
+
+	WORD Indices[] = {
+		0, 1, 2,
+		0, 2, 3,
+		2, 5, 4
+	};
+
+	VOID *pVertices = NULL;
+	WORD *pIndices = NULL;
+
+	HR(g_pVertexBuffer->Lock(0, sizeof(Vertices), (void**)&pVertices, NULL));
+	memcpy(pVertices, Vertices, sizeof(Vertices));
+	g_pVertexBuffer->Unlock();
+
+	HR(g_pIndexBuffer->Lock(0, sizeof(Indices), (void**)&pIndices, NULL));
+	memcpy(pIndices, Indices, sizeof(Indices));
+	g_pIndexBuffer->Unlock();
+
+	g_pd3dDevice->SetRenderState(D3DRS_LIGHTING, false);
+	g_pd3dDevice->SetRenderState(D3DRS_SHADEMODE, D3DSHADE_GOURAUD);
+
 	return S_OK;
 }
 //--------------------------------------------------
 
 //----------------Direct3D_Render-------------------
 VOID Direct3D_Render(HWND hwnd){
+	g_pd3dDevice->Clear(0, NULL, D3DCLEAR_TARGET, D3DCOLOR_XRGB(255, 255, 255), 1.0f, 0);
 
+	RECT windowRect;
+	GetClientRect(hwnd, &windowRect);
+
+	wchar_t sFPS[50];
+	int nFPSLength = swprintf_s(sFPS, 50, L"FPS: %0.3f", Get_FPS());
+
+	g_pd3dDevice->BeginScene();
+	
+	g_pd3dDevice->SetStreamSource(0, g_pVertexBuffer, 0, sizeof(CustomVertex));
+	g_pd3dDevice->SetFVF(D3DFVF_CUSTOMVERTEX);
+	g_pd3dDevice->SetIndices(g_pIndexBuffer);
+	g_pd3dDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 0, 6, 0, 3);
+
+	//Draw FPS
+	g_pFont->DrawText(NULL, sFPS, nFPSLength, &windowRect, DT_RIGHT, D3DCOLOR_XRGB(0, 0, 0)); 
+
+	g_pd3dDevice->EndScene();
+
+	g_pd3dDevice->Present(NULL, NULL, NULL, NULL);
 }
 //--------------------------------------------------
 
 //----------------Direct3D_CleanUp------------------
 VOID Direct3D_CleanUp(){
+	SAFE_RELEASE(g_pIndexBuffer);
+	SAFE_RELEASE(g_pVertexBuffer);
+	SAFE_RELEASE(g_pFont);
 	SAFE_RELEASE(g_pd3dDevice);
 }
 //--------------------------------------------------
